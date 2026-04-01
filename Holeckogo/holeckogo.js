@@ -1,82 +1,76 @@
-function cholesky(A, b) {
+const epsilon = 1e-10; //сравнимый ноль
+
+function modifiedCholesky(A, b) {
     const n = A.length;
-    
- 
-    const L = new Array(n);
-    for (let i = 0; i < n; i++) {
+
+    const L = new Array(n); //создане матриц
+    const D = new Array(n);
+
+    for (let i = 0; i < n; i++) { //L - диагонльная 1
         L[i] = new Array(n).fill(0);
+        L[i][i] = 1; 
     }
- 
-    for (let i = 0; i < n; i++) {
- 
-        let sum = 0;
-        for (let k = 0; k < i; k++) {
-            sum += L[i][k] * L[i][k];
+
+    for (let j = 0; j < n; j++) { //вычисление матриц D L
+        let sumD = 0;
+        for (let k = 0; k < j; k++) {
+            sumD += L[j][k] * L[j][k] * D[k]; //вычисление накопителя для D  
         }
-        L[i][i] = Math.sqrt(A[i][i] - sum);
-        
-        for (let j = i + 1; j < n; j++) {
-            sum = 0;
-            for (let k = 0; k < i; k++) {
-                sum += L[j][k] * L[i][k];
+        D[j] = A[j][j] - sumD; //1 формула
+
+        if (Math.abs(D[j]) < epsilon) {
+            throw new Error(`Матрица - вырождена: D[${j}] = ${D[j]}  `); //2 формула
+        }
+
+        for (let i = j + 1; i < n; i++) { 
+            let sumL = 0;
+            for (let k = 0; k < j; k++) {//вычисление накопителя для L
+                sumL += L[i][k] * L[j][k] * D[k];
             }
-            L[j][i] = (A[j][i] - sum) / L[i][i];
+            L[i][j] = (A[i][j] - sumL) / D[j]; //3 формула
         }
     }
 
     const y = new Array(n);
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {  
         let sum = 0;
         for (let j = 0; j < i; j++) {
-            sum += L[i][j] * y[j];
+            sum += L[i][j] * y[j]; //вычисление накопителя для y
         }
-        y[i] = (b[i] - sum) / L[i][i];
+        y[i] = b[i] - sum; // 4 формула 
     }
     
-
+    const z = new Array(n); //5 формула 
+    for (let i = 0; i < n; i++) {
+        z[i] = y[i] / D[i];
+    }
+    
     const x = new Array(n);
-    for (let i = n - 1; i >= 0; i--) {
+    for (let i = n - 1; i >= 0; i--) { //6 формула
         let sum = 0;
         for (let j = i + 1; j < n; j++) {
             sum += L[j][i] * x[j];
         }
-        x[i] = (y[i] - sum) / L[i][i];
+        x[i] = z[i] - sum; 
     }
-    
-    return { solution: x, L: L, y: y };
+    return { solution: x, L: L, D: D, y: y, z: z };
 }
 
 const A = [
-    [31,15,10],
-    [15,25,5],
-    [10,5,42]
+    [9, -2, 1, -1],
+    [-2, 8, 2 ,1],
+    [1, 2, 7, -1],
+    [-1, 1, -1, 6]
 ];
 
-const b = [108.3, 92, 171]
+// детерминант семетричность (проверка b = 0)
 
-const result = cholesky(A, b);
+const b = [7, 9, 9, 5];
 
-document.write("МАТРИЦА L:" + "</br>");
-for (let i = 0; i < result.L.length; i++) {
-    document.write(result.L[i].map(num => num.toFixed(4)).join(" | ") + "</br>");
-}
+const result = modifiedCholesky(A, b);
 
-document.write("</br>ПРОМЕЖУТОЧНЫЙ ВЕКТОР y:" + "</br>");
-for (let i = 0; i < result.y.length; i++) {
-    document.write("y" + (i+1) + "= " + result.y[i].toFixed(6) + "</br>");
-}
 
-document.write("</br>РЕЗУЛЬТАТЫ:" + "</br>");
+document.write("</br>РЕШЕНИЕ СИСТЕМЫ:</br>");
 for (let i = 0; i < result.solution.length; i++) {
-    document.write("x" + (i+1) + "= " + result.solution[i].toFixed(6) + "</br>");
+    document.write("x" + (i+1) + " = " + result.solution[i].toFixed(6) + "</br>");
 }
-
-// // Проверка решения
-// document.write("</br>ПРОВЕРКА A*x = b:" + "</br>");
-// for (let i = 0; i < A.length; i++) {
-//     let sum = 0;
-//     for (let j = 0; j < A[i].length; j++) {
-//         sum += A[i][j] * result.solution[j];
-//     }
-//     document.write("Уравнение " + (i+1) + ": " + sum.toFixed(2) + " = " + b[i] + "</br>");
-// }
